@@ -116,15 +116,23 @@
 //! For most common cases, the re-exported functions are enough, and the low level functions do not
 //! have to be used directly.
 
-use std::*;
+#![no_std]
 
-mod jewel;
+#[cfg(feature = "std")]
+extern crate std;
+
+use core::{cmp, iter, mem, ptr};
+
+extern crate alloc;
+use alloc::{boxed::Box, vec::Vec};
+
 pub mod hamming;
+mod jewel;
 pub mod levenshtein;
 
 // re-export common functions
 pub use hamming::{hamming, hamming_search};
-pub use levenshtein::{levenshtein, rdamerau, levenshtein_exp, rdamerau_exp, levenshtein_search};
+pub use levenshtein::{levenshtein, levenshtein_exp, levenshtein_search, rdamerau, rdamerau_exp};
 
 // some shared utility stuff below
 
@@ -138,7 +146,7 @@ pub struct Match {
     /// The end index of the match (exclusive).
     pub end: usize,
     /// Number of edits for the match.
-    pub k: u32
+    pub k: u32,
 }
 
 /// An enum describing possible edit operations.
@@ -150,7 +158,7 @@ pub enum EditType {
     Mismatch,
     AGap,
     BGap,
-    Transpose
+    Transpose,
 }
 
 /// A struct representing a sequence of edits of the same type.
@@ -161,7 +169,7 @@ pub struct Edit {
     /// The type of edit operation.
     pub edit: EditType,
     /// The number of consecutive edit operations of the same type.
-    pub count: usize
+    pub count: usize,
 }
 
 /// An enum representing whether to return all matches or just the best matches.
@@ -170,7 +178,7 @@ pub struct Edit {
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum SearchType {
     All,
-    Best
+    Best,
 }
 
 /// This creates a vector with the alignment and padding for `u128` values, and
@@ -195,13 +203,11 @@ pub enum SearchType {
 /// ```
 #[inline]
 pub fn alloc_str(len: usize) -> Vec<u8> {
-    let words_len = (len >> 4) + (if (len & 15) > 0 {1} else {0});
-    let words = vec![0u128; words_len];
+    let words_len = (len >> 4) + (if (len & 15) > 0 { 1 } else { 0 });
+    let words = alloc::vec![0u128; words_len];
     let mut words = mem::ManuallyDrop::new(words);
 
-    unsafe {
-        Vec::from_raw_parts(words.as_mut_ptr() as *mut u8, len, words_len << 4)
-    }
+    unsafe { Vec::from_raw_parts(words.as_mut_ptr() as *mut u8, len, words_len << 4) }
 }
 
 /// Directly copy from the a source `u8` slice to a destination `u8` slice.
@@ -241,4 +247,3 @@ fn check_no_null_bytes(s: &[u8]) {
         }
     }
 }
-

@@ -9,10 +9,8 @@
 //! * `hamming_search_simd`
 //! * `hamming_search_simd_with_opts`
 
-use std::*;
-
-use super::*;
 use super::jewel::*;
+use super::*;
 
 /// Returns the hamming distance between two strings by naively counting mismatches.
 ///
@@ -67,8 +65,16 @@ pub fn hamming_naive(a: &[u8], b: &[u8]) -> u32 {
 ///
 /// assert!(matches == vec![Match{start: 2, end: 5, k: 1}]);
 /// ```
-pub fn hamming_search_naive<'a>(needle: &'a [u8], haystack: &'a [u8]) -> Box<dyn Iterator<Item = Match> + 'a> {
-    hamming_search_naive_with_opts(needle, haystack, ((needle.len() as u32) >> 1) + ((needle.len() as u32) & 1), SearchType::Best)
+pub fn hamming_search_naive<'a>(
+    needle: &'a [u8],
+    haystack: &'a [u8],
+) -> Box<dyn Iterator<Item = Match> + 'a> {
+    hamming_search_naive_with_opts(
+        needle,
+        haystack,
+        ((needle.len() as u32) >> 1) + ((needle.len() as u32) & 1),
+        SearchType::Best,
+    )
 }
 
 /// Returns an iterator over `Match`s by naively searching through the text `haystack`
@@ -93,7 +99,12 @@ pub fn hamming_search_naive<'a>(needle: &'a [u8], haystack: &'a [u8]) -> Box<dyn
 ///
 /// assert!(matches == vec![Match{start: 2, end: 5, k: 1}]);
 /// ```
-pub fn hamming_search_naive_with_opts<'a>(needle: &'a [u8], haystack: &'a [u8], k: u32, search_type: SearchType) -> Box<dyn Iterator<Item = Match> + 'a> {
+pub fn hamming_search_naive_with_opts<'a>(
+    needle: &'a [u8],
+    haystack: &'a [u8],
+    k: u32,
+    search_type: SearchType,
+) -> Box<dyn Iterator<Item = Match> + 'a> {
     let needle_len = needle.len();
     let haystack_len = haystack.len();
 
@@ -121,12 +132,19 @@ pub fn hamming_search_naive_with_opts<'a>(needle: &'a [u8], haystack: &'a [u8], 
 
             match search_type {
                 SearchType::Best => curr_k = final_res,
-                _ => ()
+                _ => (),
             }
 
             i += 1;
 
-            return Some((Match{start: i - 1, end: i + needle_len - 1, k: final_res}, curr_k));
+            return Some((
+                Match {
+                    start: i - 1,
+                    end: i + needle_len - 1,
+                    k: final_res,
+                },
+                curr_k,
+            ));
         }
 
         None
@@ -317,15 +335,6 @@ pub fn hamming_words_128(a: &[u8], b: &[u8]) -> u32 {
 pub fn hamming_simd_parallel(a: &[u8], b: &[u8]) -> u32 {
     assert!(a.len() == b.len());
 
-    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-    {
-        if cfg!(feature = "jewel-avx") && is_x86_feature_detected!("avx2") {
-            return unsafe {Avx::count_mismatches(a.as_ptr(), b.as_ptr(), a.len())};
-        }else if cfg!(feature = "jewel-sse") && is_x86_feature_detected!("sse4.1") {
-            return unsafe {Sse::count_mismatches(a.as_ptr(), b.as_ptr(), a.len())};
-        }
-    }
-
     hamming_naive(a, b)
 }
 
@@ -353,15 +362,6 @@ pub fn hamming_simd_parallel(a: &[u8], b: &[u8]) -> u32 {
 /// ```
 pub fn hamming_simd_movemask(a: &[u8], b: &[u8]) -> u32 {
     assert!(a.len() == b.len());
-
-    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-    {
-        if cfg!(feature = "jewel-avx") && is_x86_feature_detected!("avx2") {
-            return unsafe {Avx::mm_count_mismatches(a.as_ptr(), b.as_ptr(), a.len())};
-        }else if cfg!(feature = "jewel-sse") && is_x86_feature_detected!("sse4.1") {
-            return unsafe {Sse::mm_count_mismatches(a.as_ptr(), b.as_ptr(), a.len())};
-        }
-    }
 
     hamming_naive(a, b)
 }
@@ -419,8 +419,16 @@ pub fn hamming(a: &[u8], b: &[u8]) -> u32 {
 ///
 /// assert!(matches == vec![Match{start: 2, end: 5, k: 1}]);
 /// ```
-pub fn hamming_search_simd<'a>(needle: &'a [u8], haystack: &'a [u8]) -> Box<dyn Iterator<Item = Match> + 'a> {
-    hamming_search_simd_with_opts(needle, haystack, ((needle.len() as u32) >> 1) + ((needle.len() as u32) & 1), SearchType::Best)
+pub fn hamming_search_simd<'a>(
+    needle: &'a [u8],
+    haystack: &'a [u8],
+) -> Box<dyn Iterator<Item = Match> + 'a> {
+    hamming_search_simd_with_opts(
+        needle,
+        haystack,
+        ((needle.len() as u32) >> 1) + ((needle.len() as u32) & 1),
+        SearchType::Best,
+    )
 }
 
 /// Returns an iterator over `Match`s by searching through the text `haystack` for the
@@ -451,7 +459,12 @@ pub fn hamming_search_simd<'a>(needle: &'a [u8], haystack: &'a [u8]) -> Box<dyn 
 ///
 /// assert!(matches == vec![Match{start: 2, end: 5, k: 1}]);
 /// ```
-pub fn hamming_search_simd_with_opts<'a>(needle: &'a [u8], haystack: &'a [u8], k: u32, search_type: SearchType) -> Box<dyn Iterator<Item = Match> + 'a> {
+pub fn hamming_search_simd_with_opts<'a>(
+    needle: &'a [u8],
+    haystack: &'a [u8],
+    k: u32,
+    search_type: SearchType,
+) -> Box<dyn Iterator<Item = Match> + 'a> {
     if needle.len() > haystack.len() {
         return Box::new(iter::empty());
     }
@@ -462,15 +475,6 @@ pub fn hamming_search_simd_with_opts<'a>(needle: &'a [u8], haystack: &'a [u8], k
 
     check_no_null_bytes(haystack);
 
-    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-    {
-        if cfg!(feature = "jewel-avx") && is_x86_feature_detected!("avx2") {
-            return unsafe {hamming_search_simd_core_avx(needle, haystack, k, search_type)};
-        }else if cfg!(feature = "jewel-sse") && is_x86_feature_detected!("sse4.1") {
-            return unsafe {hamming_search_simd_core_sse(needle, haystack, k, search_type)};
-        }
-    }
-
     hamming_search_naive_with_opts(needle, haystack, k, search_type)
 }
 
@@ -478,10 +482,19 @@ macro_rules! create_hamming_search_simd_core {
     ($name:ident, $jewel:ty, $target:literal) => {
         #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
         #[target_feature(enable = $target)]
-        unsafe fn $name<'a>(needle: &'a [u8], haystack: &'a [u8], k: u32, search_type: SearchType) -> Box<dyn Iterator<Item = Match> + 'a> {
+        unsafe fn $name<'a>(
+            needle: &'a [u8],
+            haystack: &'a [u8],
+            k: u32,
+            search_type: SearchType,
+        ) -> Box<dyn Iterator<Item = Match> + 'a> {
             #[cfg(feature = "debug")]
             {
-                println!("Debug: Hamming search Jewel vector type {} for target {}.", stringify!($jewel), stringify!($target));
+                println!(
+                    "Debug: Hamming search Jewel vector type {} for target {}.",
+                    stringify!($jewel),
+                    stringify!($target)
+                );
             }
 
             let needle_len = needle.len();
@@ -491,7 +504,11 @@ macro_rules! create_hamming_search_simd_core {
             // there may be leftover positions in haystack that need to be calculated using a
             // scalar search afterwards
             // there should be no null bytes in the strings
-            let len = if needle_vector.upper_bound() > haystack_len {0} else {haystack_len + 1 - needle_vector.upper_bound()};
+            let len = if needle_vector.upper_bound() > haystack_len {
+                0
+            } else {
+                haystack_len + 1 - needle_vector.upper_bound()
+            };
             let real_len = haystack_len + 1 - needle_len;
             let haystack_ptr = haystack.as_ptr();
             let mut curr_k = k;
@@ -499,16 +516,27 @@ macro_rules! create_hamming_search_simd_core {
 
             let res = iter::from_fn(move || {
                 while i < len {
-                    let final_res = <$jewel>::vector_count_mismatches(&needle_vector, haystack_ptr.offset(i as isize), needle_len);
+                    let final_res = <$jewel>::vector_count_mismatches(
+                        &needle_vector,
+                        haystack_ptr.offset(i as isize),
+                        needle_len,
+                    );
                     i += 1;
 
                     if final_res <= curr_k {
                         match search_type {
                             SearchType::Best => curr_k = final_res,
-                            _ => ()
+                            _ => (),
                         }
 
-                        return Some((Match{start: i - 1, end: i + needle_len - 1, k: final_res}, curr_k));
+                        return Some((
+                            Match {
+                                start: i - 1,
+                                end: i + needle_len - 1,
+                                k: final_res,
+                            },
+                            curr_k,
+                        ));
                     }
                 }
 
@@ -517,7 +545,8 @@ macro_rules! create_hamming_search_simd_core {
                     let mut final_res = 0u32;
 
                     for j in 0..needle_len {
-                        final_res += (*needle.get_unchecked(j) != *haystack.get_unchecked(i + j)) as u32;
+                        final_res +=
+                            (*needle.get_unchecked(j) != *haystack.get_unchecked(i + j)) as u32;
 
                         if final_res > curr_k {
                             i += 1;
@@ -527,12 +556,19 @@ macro_rules! create_hamming_search_simd_core {
 
                     match search_type {
                         SearchType::Best => curr_k = final_res,
-                        _ => ()
+                        _ => (),
                     }
 
                     i += 1;
 
-                    return Some((Match{start: i - 1, end: i + needle_len - 1, k: final_res}, curr_k));
+                    return Some((
+                        Match {
+                            start: i - 1,
+                            end: i + needle_len - 1,
+                            k: final_res,
+                        },
+                        curr_k,
+                    ));
                 }
 
                 None
@@ -585,7 +621,9 @@ create_hamming_search_simd_core!(hamming_search_simd_core_sse, Sse, "sse4.1");
 ///
 /// assert!(matches == vec![Match{start: 2, end: 5, k: 1}]);
 /// ```
-pub fn hamming_search<'a>(needle: &'a [u8], haystack: &'a [u8]) -> Box<dyn Iterator<Item = Match> + 'a> {
+pub fn hamming_search<'a>(
+    needle: &'a [u8],
+    haystack: &'a [u8],
+) -> Box<dyn Iterator<Item = Match> + 'a> {
     hamming_search_simd(needle, haystack)
 }
-

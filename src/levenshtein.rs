@@ -141,7 +141,7 @@ pub fn levenstein_naive_str(a: &str, b: &str) -> u32 {
 /// # use triple_accel::levenshtein::*;
 /// let dist = levenshtein_naive_with_opts(b"abc", b"ab", true, LEVENSHTEIN_COSTS);
 ///
-/// assert!(dist == (1, Some(vec![Edit{edit: EditType::Match, count: 2},
+/// assert!(dist == (1, Some(alloc::vec![Edit{edit: EditType::Match, count: 2},
 ///                               Edit{edit: EditType::BGap, count: 1}])));
 /// ```
 #[inline]
@@ -169,15 +169,15 @@ where
     let allow_transpose = costs.transpose_cost.is_some();
 
     let len = a_new_len + 1;
-    let mut dp0 = vec![0u32; len];
-    let mut dp1 = vec![0u32; len]; // in each iteration, dp0 and dp1 are already calculated
-    let mut dp2 = vec![0u32; len]; // dp2 the currently calculated column
-    let mut a_gap_dp = vec![u32::MAX; len];
-    let mut b_gap_dp = vec![u32::MAX; len];
+    let mut dp0 = alloc::vec![0u32; len];
+    let mut dp1 = alloc::vec![0u32; len]; // in each iteration, dp0 and dp1 are already calculated
+    let mut dp2 = alloc::vec![0u32; len]; // dp2 the currently calculated column
+    let mut a_gap_dp = alloc::vec![u32::MAX; len];
+    let mut b_gap_dp = alloc::vec![u32::MAX; len];
     let mut traceback = if trace_on {
-        vec![0u8; (b_new_len + 1) * len]
+        alloc::vec![0u8; (b_new_len + 1) * len]
     } else {
-        vec![]
+        alloc::vec![]
     };
 
     for i in 0..len {
@@ -369,7 +369,7 @@ pub fn levenshtein_naive_k(a: &[u8], b: &[u8], k: u32) -> Option<u32> {
 /// # use triple_accel::levenshtein::*;
 /// let dist = levenshtein_naive_k_with_opts(b"abc", b"ab", 1, true, LEVENSHTEIN_COSTS);
 ///
-/// assert!(dist.unwrap() == (1, Some(vec![Edit{edit: EditType::Match, count: 2},
+/// assert!(dist.unwrap() == (1, Some(alloc::vec![Edit{edit: EditType::Match, count: 2},
 ///                                        Edit{edit: EditType::BGap, count: 1}])));
 /// ```
 #[inline]
@@ -436,15 +436,15 @@ where
     let mut prev_lo1 = 0; // unused value
     let mut prev_hi;
     let k_len = cmp::min((unit_k << 1) + 1, b_new_len + 1);
-    let mut dp0 = vec![0u32; k_len];
-    let mut dp1 = vec![0u32; k_len]; // in each iteration, dp0 and dp1 are already calculated
-    let mut dp2 = vec![0u32; k_len]; // dp2 the currently calculated row
-    let mut a_gap_dp = vec![u32::MAX; k_len];
-    let mut b_gap_dp = vec![u32::MAX; k_len];
+    let mut dp0 = alloc::vec![0u32; k_len];
+    let mut dp1 = alloc::vec![0u32; k_len]; // in each iteration, dp0 and dp1 are already calculated
+    let mut dp2 = alloc::vec![0u32; k_len]; // dp2 the currently calculated row
+    let mut a_gap_dp = alloc::vec![u32::MAX; k_len];
+    let mut b_gap_dp = alloc::vec![u32::MAX; k_len];
     let mut traceback = if trace_on {
-        vec![0u8; len * k_len]
+        alloc::vec![0u8; len * k_len]
     } else {
-        vec![]
+        alloc::vec![]
     };
 
     for i in 0..(hi - lo) {
@@ -708,7 +708,7 @@ pub fn levenshtein_simd_k(a: &[u8], b: &[u8], k: u32) -> Option<u32> {
 /// # use triple_accel::levenshtein::*;
 /// let dist = levenshtein_simd_k_with_opts(b"abc", b"ab", 1, true, LEVENSHTEIN_COSTS);
 ///
-/// assert!(dist.unwrap() == (1, Some(vec![Edit{edit: EditType::Match, count: 2},
+/// assert!(dist.unwrap() == (1, Some(alloc::vec![Edit{edit: EditType::Match, count: 2},
 ///                                        Edit{edit: EditType::BGap, count: 1}])));
 /// ```
 pub fn levenshtein_simd_k_with_opts(
@@ -720,7 +720,7 @@ pub fn levenshtein_simd_k_with_opts(
 ) -> Option<(u32, Option<Vec<Edit>>)> {
     if a.len() == 0 && b.len() == 0 {
         return if trace_on {
-            Some((0u32, Some(vec![])))
+            Some((0u32, Some(alloc::vec![])))
         } else {
             Some((0u32, None))
         };
@@ -763,7 +763,7 @@ pub fn levenshtein_simd_k_with_opts(
         );
 
         // note: do not use the MAX value, because it indicates overflow/inaccuracy
-        if cfg!(feature = "jewel-avx") && is_x86_feature_detected!("avx2") {
+        if cfg!(feature = "jewel-avx") {
             if cfg!(feature = "jewel-8bit")
                 && unit_k <= (Avx1x32x8::static_upper_bound() as u32 - 2)
                 && max_k <= ((u8::MAX - 1) as u32)
@@ -789,7 +789,7 @@ pub fn levenshtein_simd_k_with_opts(
             } else if cfg!(feature = "jewel-32bit") {
                 return unsafe { levenshtein_simd_core_avx_nx8x32(a, b, max_k, trace_on, costs) };
             }
-        } else if cfg!(feature = "jewel-sse") && is_x86_feature_detected!("sse4.1") {
+        } else if cfg!(feature = "jewel-sse") {
             if cfg!(feature = "jewel-8bit")
                 && unit_k <= (Sse1x16x8::static_upper_bound() as u32 - 2)
                 && max_k <= ((u8::MAX - 1) as u32)
@@ -934,7 +934,7 @@ macro_rules! create_levenshtein_simd_core {
             let mut traceback_arr = if trace_on {
                 Vec::with_capacity(len + (len & 1))
             } else {
-                vec![]
+                alloc::vec![]
             };
 
             if trace_on {
@@ -1474,7 +1474,7 @@ pub fn levenshtein_exp(a: &[u8], b: &[u8]) -> u32 {
 /// # use triple_accel::levenshtein::*;
 /// let dist = levenshtein_exp_with_opts(b"abc", b"ab", true, LEVENSHTEIN_COSTS);
 ///
-/// assert!(dist == (1, Some(vec![Edit{edit: EditType::Match, count: 2},
+/// assert!(dist == (1, Some(alloc::vec![Edit{edit: EditType::Match, count: 2},
 ///                               Edit{edit: EditType::BGap, count: 1}])));
 /// ```
 pub fn levenshtein_exp_with_opts(
@@ -1544,7 +1544,7 @@ pub fn rdamerau_exp(a: &[u8], b: &[u8]) -> u32 {
 /// # use triple_accel::levenshtein::*;
 /// let matches: Vec<Match> = levenshtein_search_naive(b"abc", b"  abd").collect();
 ///
-/// assert!(matches == vec![Match{start: 2, end: 5, k: 1}]);
+/// assert!(matches == alloc::vec![Match{start: 2, end: 5, k: 1}]);
 /// ```
 pub fn levenshtein_search_naive<'a>(
     needle: &'a [u8],
@@ -1584,7 +1584,7 @@ pub fn levenshtein_search_naive<'a>(
 /// let matches: Vec<Match> = levenshtein_search_naive_with_opts(b"abc", b"  acb", 1, SearchType::All, RDAMERAU_COSTS, false).collect();
 ///
 /// // note: it is possible to end the match at two different positions
-/// assert!(matches == vec![Match{start: 2, end: 4, k: 1}, Match{start: 2, end: 5, k: 1}]);
+/// assert!(matches == alloc::vec![Match{start: 2, end: 4, k: 1}, Match{start: 2, end: 5, k: 1}]);
 /// ```
 pub fn levenshtein_search_naive_with_opts<'a>(
     needle: &'a [u8],
@@ -1660,16 +1660,16 @@ pub fn levenshtein_search_naive_with_opts<'a>(
         haystack_len
     };
 
-    let mut dp0 = vec![0u32; len];
-    let mut dp1 = vec![0u32; len];
-    let mut dp2 = vec![0u32; len];
-    let mut needle_gap_dp = vec![u32::MAX; len];
-    let mut haystack_gap_dp = vec![u32::MAX; len];
-    let mut length0 = vec![0usize; len];
-    let mut length1 = vec![0usize; len];
-    let mut length2 = vec![0usize; len];
-    let mut needle_gap_length = vec![0usize; len];
-    let mut haystack_gap_length = vec![0usize; len];
+    let mut dp0 = alloc::vec![0u32; len];
+    let mut dp1 = alloc::vec![0u32; len];
+    let mut dp2 = alloc::vec![0u32; len];
+    let mut needle_gap_dp = alloc::vec![u32::MAX; len];
+    let mut haystack_gap_dp = alloc::vec![u32::MAX; len];
+    let mut length0 = alloc::vec![0usize; len];
+    let mut length1 = alloc::vec![0usize; len];
+    let mut length2 = alloc::vec![0usize; len];
+    let mut needle_gap_length = alloc::vec![0usize; len];
+    let mut haystack_gap_length = alloc::vec![0usize; len];
     let mut curr_k = k;
     let mismatch_cost = costs.mismatch_cost as u32;
     let gap_cost = costs.gap_cost as u32;
@@ -1861,7 +1861,7 @@ pub fn levenshtein_search_naive_with_opts<'a>(
 /// # use triple_accel::levenshtein::*;
 /// let matches: Vec<Match> = levenshtein_search_simd(b"abc", b"  abd").collect();
 ///
-/// assert!(matches == vec![Match{start: 2, end: 5, k: 1}]);
+/// assert!(matches == alloc::vec![Match{start: 2, end: 5, k: 1}]);
 /// ```
 pub fn levenshtein_search_simd<'a>(
     needle: &'a [u8],
@@ -1906,7 +1906,7 @@ pub fn levenshtein_search_simd<'a>(
 /// let matches: Vec<Match> = levenshtein_search_simd_with_opts(b"abc", b"  acb", 1, SearchType::All, RDAMERAU_COSTS, false).collect();
 ///
 /// // note: it is possible to end the match at two different positions
-/// assert!(matches == vec![Match{start: 2, end: 4, k: 1}, Match{start: 2, end: 5, k: 1}]);
+/// assert!(matches == alloc::vec![Match{start: 2, end: 4, k: 1}, Match{start: 2, end: 5, k: 1}]);
 /// ```
 pub fn levenshtein_search_simd_with_opts<'a>(
     needle: &'a [u8],
@@ -1974,7 +1974,7 @@ pub fn levenshtein_search_simd_with_opts<'a>(
             k.saturating_add(1),
         );
 
-        if cfg!(feature = "jewel-avx") && is_x86_feature_detected!("avx2") {
+        if cfg!(feature = "jewel-avx") {
             if cfg!(feature = "jewel-8bit")
                 && needle.len() <= Avx1x32x8::static_upper_bound()
                 && upper_bound <= u8::MAX as u32
@@ -2054,7 +2054,7 @@ pub fn levenshtein_search_simd_with_opts<'a>(
                     )
                 };
             }
-        } else if cfg!(feature = "jewel-sse") && is_x86_feature_detected!("sse4.1") {
+        } else if cfg!(feature = "jewel-sse") {
             if cfg!(feature = "jewel-8bit")
                 && needle.len() <= Sse1x16x8::static_upper_bound()
                 && upper_bound <= u8::MAX as u32
@@ -2503,7 +2503,7 @@ create_levenshtein_search_simd_core!(levenshtein_search_simd_core_sse_nx4x32, Ss
 /// # use triple_accel::*;
 /// let matches: Vec<Match> = levenshtein_search(b"abc", b"  abd").collect();
 ///
-/// assert!(matches == vec![Match{start: 2, end: 5, k: 1}]);
+/// assert!(matches == alloc::vec![Match{start: 2, end: 5, k: 1}]);
 /// ```
 pub fn levenshtein_search<'a>(
     needle: &'a [u8],
